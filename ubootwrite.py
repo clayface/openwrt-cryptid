@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 #
 # simple tool to upload data to the RAM of linux systems running the U-Boot bootloader
 #
@@ -8,8 +8,8 @@
 # Basically it can only be GPLv3, because brntool is.
 
 # -*- coding: utf-8 -*-
-from __future__ import division #1/2 = float, 1//2 = integer, python 3.0 behaviour in 2.6, to make future port to 3 easier.
-from __future__ import print_function
+#1/2 = float, 1//2 = integer, python 3.0 behaviour in 2.6, to make future port to 3 easier.
+
 from optparse import OptionParser
 import os
 import struct
@@ -23,21 +23,21 @@ if not debug:
 
 # The maximum size to transfer if we can determinate the size of the file (if input data comes from stdin).
 MAX_SIZE = 2 ** 30
-LINE_FEED = "\n"
+LINE_FEED = b"\n"
 
 # Wait for the prompt
 def getprompt(ser, addr, verbose, shell):
 	# Send a command who does not produce a result so when receiving the next line feed, only show the prompt will be returned
 	# Flushing read buffer
 	if not shell:
-		buf = ""
+		buf = b""
 		while True:
 			oldbuf = buf
 			buf = ser.read(256);
-			combined = str(oldbuf)+str(buf)
+			combined = b"".join([oldbuf,buf])
 			#if "cdp: machid 4971" in combined:
-			if "late_init: machid 4971" in combined:
-				ser.write(str.encode("xyzzy"));
+			if "late_init: machid 4971" in combined.decode("UTF-8"):
+				ser.write("xyzzy".encode("UTF-8"));
 				while ser.read(256):
 					   pass
 				break
@@ -46,30 +46,30 @@ def getprompt(ser, addr, verbose, shell):
 		print("Waiting for a prompt...")
 	while True:
 		# Write carriage return and wait for a response
-		ser.write(str.encode(LINE_FEED))
+		ser.write(LINE_FEED)
 		# Read the response
 		buf = ser.read(256);
 		if (buf.endswith(b"> ") or buf.endswith(b"# ")):
-			print("Prompt is '" + str(buf[2:]) + "'")
+			print("Prompt is '" + buf[2:].decode("UTF-8") + "'")
 			# The prompt returned starts with a line feed. This is the echo of the line feed we send to get the prompt.
 			# We keep this linefeed
-			return buf
+			return buf.decode("UTF-8")
 		else:
 			# Flush read buffer
 			while True:
 				buf = ser.read(256)
 				if (buf.endswith(b"> ") or buf.endswith(b"# ")):
-					print("Prompt is '" + str(buf[2:]) + "'")
+					print("Prompt is '" + buf[2:].decode("UTF-8") + "'")
 	 		   			# The prompt returned starts with a line feed. This is the echo of the line feed we send to get the prompt.
 					# We keep this linefeed
-					return buf
+					return buf.decode("UTF-8")
 				pass
 
 # Wait for the prompt and return True if received or False otherwise 
 def writecommand(ser, command, prompt, verbose):
 
 	# Write the command and a line feed, so we must get back the command and the prompt
-	ser.write(str.encode(command + LINE_FEED))
+	ser.write(b"".join([command.encode("UTF-8"), LINE_FEED]))
 	buf = ser.read(len(command))
 	if (buf.decode("utf-8") != command):
 		if verbose:
@@ -80,13 +80,13 @@ def writecommand(ser, command, prompt, verbose):
 		print("Waiting for prompt...")
 
 	buf = ser.read(len(prompt))
-	if (buf == prompt):
+	if (buf.decode("UTF-8") == prompt):
 		if verbose:
 			print("Ok, prompt received")
 		return True
 	else:
 		if verbose:
-			print("Prompt '" + str(prompt) + "' not received. Instead received '" + str(buf) + "'")
+			print("Prompt '" + str(prompt) + "' not received. Instead received '" + buf.decode("UTF-8") + "'")
 		return False
 
 def memwrite(ser, path, size, start_addr, verbose, debug, shell):
@@ -172,19 +172,19 @@ def upload(ser, path, size, start_addr, verbose, debug, shell):
 	print("Done")
 #		if ret:
 #			shell = True
-#			buf = ""
+#			buf = b""
 #			while True:
 #				oldbuf = buf
 #				buf = ser.read(256);
 #				if buf:
 #					print("COM: %s" % buf.decode("utf-8"));
 #
-#					combined = str(oldbuf)+str(buf)
-#					if "ERROR: can't get kernel image!" in combined:
+#					combined = b"".join([oldbuf,buf])
+#					if "ERROR: can't get kernel image!" in combined.decode("UTF-8"):
 #						print("Retry...")
 #						break
 #
-#					if "Hello from MR33 U-BOOT" in combined:
+#					if "Hello from MR33 U-BOOT" in combined.decode("UTF-8"):
 #					return
 #				pass
 #		pass
@@ -211,7 +211,7 @@ def main():
 		prompt = getprompt(ser, options.verbose, options.shell)
 		writecommand(ser, "mw 42000000 01234567", prompt, options.verbose)
 		buf = ser.read(256)
-		print("buf = '" + buf + "'")
+		print("buf = '" + buf.decode("UTF-8") + "'")
 		return
 
 	if options.write:
